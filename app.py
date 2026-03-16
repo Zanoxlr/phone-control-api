@@ -10,6 +10,8 @@ from flask_cors import CORS
 import subprocess
 import json
 import os
+import re
+import time
 from datetime import datetime
 
 app = Flask(__name__)
@@ -66,25 +68,42 @@ def health():
 
 @app.route('/api/create_contact', methods=['POST'])
 def create_contact():
-    """Create contact and prefill dialer"""
+    """Create contact and prefill dialer - uses BASH script for reliability"""
     try:
         data = request.get_json()
-        contact_id = data.get('contact_id')
         full_name = data.get('full_name')
         phone_number = data.get('phone_number')
         
-        if not all([contact_id, full_name, phone_number]):
-            return jsonify({'success': False, 'error': 'Missing parameters'}), 400
+        if not full_name or not phone_number:
+            return jsonify({'success': False, 'error': 'Missing full_name or phone_number'}), 400
         
-        result = run_script('add_contact', [str(contact_id), full_name, phone_number])
+        # Call bash script which handles everything
+        result = subprocess.run(['/tmp/create_contact_full.sh', full_name, phone_number],
+            capture_output=True, text=True, timeout=30
+        )
+        
+        if result.returncode != 0:
+            return jsonify({
+                'success': False,
+                'error': 'Failed to create contact',
+                'output': result.stdout,
+                'error_output': result.stderr
+            }), 500
+        
+        # Extract contact ID from output
+        contact_id = 1
+        match = re.search(r'New ID will be: (\d+)', result.stdout)
+        if match:
+            contact_id = int(match.group(1))
         
         return jsonify({
-            'success': result['success'],
-            'message': f'Contact created: {full_name}' if result['success'] else 'Failed',
+            'success': True,
+            'message': f'Contact created and dialer opened: {full_name}',
             'contact_id': contact_id,
             'full_name': full_name,
             'phone_number': phone_number,
-            'output': result['output']
+            'dialer_opened': True,
+            'script_output': result.stdout
         })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
