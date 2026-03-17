@@ -59,14 +59,34 @@ GET /api/unified_monitor?device_ip=100.103.46.48
 ## 🔧 Installation
 
 ```bash
-# API already running on localhost:5000
-ps aux | grep python  # Verify
+# Install dependencies (includes Gunicorn)
+pip install -r requirements.txt
+
+# Copy files to the deployment directory
+cp -r . /opt/phone-control-api
+cd /opt/phone-control-api
+
+# Install and enable the systemd service (auto-start on boot, auto-restart on crash)
+cp phone-control-api.service /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable phone-control-api
+systemctl start phone-control-api
+
+# Verify it's running
+systemctl status phone-control-api
+ps aux | grep gunicorn
 
 # Test endpoint
 curl http://127.0.0.1:5000/
 
 # View logs
-tail -f /var/log/phone-control-api.log
+journalctl -u phone-control-api -f
+```
+
+To stop / restart:
+```bash
+systemctl stop phone-control-api
+systemctl restart phone-control-api
 ```
 
 ## 🎯 Architecture

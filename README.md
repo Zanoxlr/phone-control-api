@@ -76,8 +76,19 @@ GET /api/get_calls?device_ip=100.103.55.21
 
 ```bash
 pip install -r requirements.txt
+```
+
+### Running the API
+
+```bash
+# Production (recommended)
+gunicorn -c gunicorn.conf.py app:app
+
+# Development only
 python app.py
 ```
+
+**Production concurrency:** Gunicorn is configured with 4 workers × 4 threads = **16 concurrent requests**. Each worker is an independent process, so slow ADB calls on one phone never block requests to other phones. Adjust `workers` and `threads` in `gunicorn.conf.py` if you add more phones.
 
 ## Scripts Required
 
