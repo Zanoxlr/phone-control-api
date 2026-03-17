@@ -9,33 +9,38 @@
 - **Framework:** Flask 3.0.0
 - **Port:** 127.0.0.1:5000 (localhost only)
 - **5 Core Endpoints** wrapping proven shell scripts
+- **Multi-Phone:** Every endpoint requires `device_ip` to target a specific phone
 
 ### 5 Production-Ready Scripts
-1. `/tmp/add_contact.sh` - Create contact + prefill dialer
-2. `/tmp/send_sms.sh` - Send SMS messages
-3. `/tmp/get_calls.sh` - Call history (datetime filter)
-4. `/tmp/get_sms.sh` - SMS history (datetime filter)
-5. `/root/.openclaw/workspace/unified_monitor.sh` - Real-time monitoring
+Each script receives the target device IP as `$1` and connects via `adb -s $1:5555`:
+
+1. `/tmp/create_contact_full.sh` - Create contact + prefill dialer
+2. `/tmp/add_contact.sh` - Create contact
+3. `/tmp/send_sms.sh` - Send SMS messages
+4. `/tmp/get_calls.sh` - Call history (datetime filter)
+5. `/tmp/get_sms.sh` - SMS history (datetime filter)
+6. `/root/.openclaw/workspace/unified_monitor.sh` - Real-time monitoring
 
 ## 🚀 API Endpoints
 
 ```
 POST /api/create_contact
 {
-  "contact_id": 10922,
+  "device_ip": "100.103.46.48",
   "full_name": "John Doe",
   "phone_number": "+38641234567"
 }
 
 POST /api/send_sms
 {
+  "device_ip": "100.103.46.48",
   "phone_number": "+38641234567",
   "message": "Hello!"
 }
 
-GET /api/get_calls[?since=2026-03-16%2018:00:00]
-GET /api/get_sms[?since=2026-03-16%2018:00:00]
-GET /api/unified_monitor
+GET /api/get_calls?device_ip=100.103.46.48[&since=2026-03-16%2018:00:00]
+GET /api/get_sms?device_ip=100.103.46.48[&since=2026-03-16%2018:00:00]
+GET /api/unified_monitor?device_ip=100.103.46.48
 ```
 
 ## 📊 GitHub Repositories
@@ -44,7 +49,6 @@ GET /api/unified_monitor
 - **Name:** phone-control-api
 - **URL:** https://github.com/Zanoxlr/phone-control-api
 - **Status:** Created and pushed to GitHub
-- **Commits:** 1 (initial)
 
 ### Updated Repository  
 - **Name:** messaging-api
@@ -68,27 +72,28 @@ tail -f /var/log/phone-control-api.log
 ## 🎯 Architecture
 
 ```
-Client
-  ↓
-Python API (localhost:5000)
-  ↓
+Another Service (localhost)
+        ↓
+Phone Control API (127.0.0.1:5000)
+        ↓  device_ip passed as $1 to every script
 Shell Scripts (/tmp/, /root/.openclaw/workspace/)
-  ↓
-ADB Commands
-  ↓
-Android Device (100.103.46.48:5555 via Tailscale)
+        ↓  ADB Commands  (adb -s $DEVICE_IP:5555)
+        ↓  Tailscale VPN
+  ┌─────┴──────┐
+Phone A        Phone B  ...
+(100.103.46.48) (100.103.xx.xx)
 ```
 
 ## 💾 Storage
 
 - **Database:** SQLite (configured, not yet used)
-- **Device IP:** 100.103.46.48 (Tailscale, ADB port 5555)
+- **Device IP:** Provided per-request via `device_ip` parameter (ADB port 5555)
 - **Local only:** No external network exposure
 
 ## ✅ Verification
 
 All 5 scripts tested before deployment:
-- ✅ `add_contact.sh` - Creates contacts correctly
+- ✅ `create_contact_full.sh` - Creates contacts correctly
 - ✅ `send_sms.sh` - SMS delivery verified
 - ✅ `get_calls.sh` - Returns call history with datetime filtering
 - ✅ `get_sms.sh` - Returns SMS with datetime filtering  
