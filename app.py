@@ -11,7 +11,9 @@ from flask_cors import CORS
 import subprocess
 import os
 import re
+import ipaddress
 from datetime import datetime
+import config
 
 app = Flask(__name__)
 CORS(app)
@@ -25,9 +27,20 @@ SCRIPTS = {
     'unified_monitor': '/root/.openclaw/workspace/unified_monitor.sh'
 }
 
+def validate_device_ip(device_ip):
+    """Return True if device_ip is a valid IPv4 address."""
+    try:
+        addr = ipaddress.ip_address(device_ip)
+        return addr.version == 4
+    except ValueError:
+        return False
+
 def run_script(script_name, device_ip, args=None):
     """Run a shell script with device_ip as the first argument and return output"""
     try:
+        if not validate_device_ip(device_ip):
+            return {'success': False, 'error': f'Invalid device_ip: {device_ip}'}
+
         if script_name not in SCRIPTS:
             return {'success': False, 'error': f'Unknown script: {script_name}'}
 
@@ -77,6 +90,8 @@ def create_contact():
 
         if not device_ip:
             return jsonify({'success': False, 'error': 'Missing device_ip'}), 400
+        if not validate_device_ip(device_ip):
+            return jsonify({'success': False, 'error': f'Invalid device_ip: {device_ip}'}), 400
         if not full_name or not phone_number:
             return jsonify({'success': False, 'error': 'Missing full_name or phone_number'}), 400
 
@@ -211,6 +226,7 @@ def unified_monitor():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 if __name__ == '__main__':
-    # Development only! For production use:
-    # gunicorn -c gunicorn.conf.py app:app
-    app.run(host='127.0.0.1', port=5000, debug=True)
+    # Development only — this block is NEVER executed by Gunicorn.
+    # For production use: gunicorn -c gunicorn.conf.py app:app
+    # debug=True is intentional here: if you're running python app.py directly, you're developing.
+    app.run(host=config.HOST, port=config.PORT, debug=True)

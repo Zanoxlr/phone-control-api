@@ -1,0 +1,20 @@
+[Unit]
+Description=Phone Control API (Gunicorn)
+After=network.target
+
+[Service]
+Type=notify
+# Root is required: scripts live in /root/.openclaw/workspace/ and /tmp/.
+# If you move scripts to a non-root location, replace User=root with a
+# dedicated service account (e.g. User=phone-api) for better isolation.
+User=root
+WorkingDirectory=/opt/phone-control-api
+ExecStart=/usr/local/bin/gunicorn -c gunicorn.conf.py app:app
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=phone-control-api
+
+[Install]
+WantedBy=multi-user.target
