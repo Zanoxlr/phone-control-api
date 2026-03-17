@@ -211,5 +211,6 @@ def unified_monitor():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 if __name__ == '__main__':
-    # Run on localhost only - not accessible from outside
-    app.run(host='127.0.0.1', port=5000, debug=False)
+    # Development only! For production use:
+    # gunicorn -c gunicorn.conf.py app:app
+    app.run(host='127.0.0.1', port=5000, debug=True)

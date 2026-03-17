@@ -59,14 +59,20 @@ GET /api/unified_monitor?device_ip=100.103.46.48
 ## 🔧 Installation
 
 ```bash
-# API already running on localhost:5000
-ps aux | grep python  # Verify
+# Install dependencies (includes Gunicorn)
+pip install -r requirements.txt
+
+# Start API with Gunicorn (production — 4 workers × 4 threads = 16 concurrent requests)
+gunicorn -c gunicorn.conf.py app:app
+
+# Verify it's running
+ps aux | grep gunicorn
 
 # Test endpoint
 curl http://127.0.0.1:5000/
 
-# View logs
-tail -f /var/log/phone-control-api.log
+# View logs (Gunicorn logs to stdout/stderr by default)
+journalctl -u phone-control-api -f
 ```
 
 ## 🎯 Architecture
